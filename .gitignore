@@ -1,3 +1,4 @@
 debug_output/**
 !.keep
 ocr.save
+.idea/**

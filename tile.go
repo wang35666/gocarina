@@ -3,9 +3,7 @@ package gocarina
 import (
 	"fmt"
 	"image"
-	"image/png"
 	"log"
-	"os"
 )
 
 // Tile represents a lettered square from a Letterpress game board.
@@ -72,19 +70,6 @@ func (t *Tile) reduce(border int) {
 
 // Save the bounded tile. Only for debugging.
 func (t *Tile) SaveBoundedAndReduced() {
-	saveImgToFile := func(file string, img image.Image) {
-		toFile, err := os.Create(file)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer toFile.Close()
-
-		err = png.Encode(toFile, img)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	saveImgToFile(fmt.Sprintf("debug_output/bounded_%c.png", t.Letter), t.Bounded)
-	saveImgToFile(fmt.Sprintf("debug_output/reduced_%c.png", t.Letter), t.Reduced)
+	SaveToPNG(fmt.Sprintf("debug_output/bounded_%c.png", t.Letter), t.Bounded)
+	SaveToPNG(fmt.Sprintf("debug_output/reduced_%c.png", t.Letter), t.Reduced)
 }

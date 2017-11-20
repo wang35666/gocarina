@@ -6,6 +6,10 @@ import (
 	"image/draw"
 	"math"
 	"math/rand"
+	"os"
+	"fmt"
+	"image/png"
+	"time"
 )
 
 // BoundingBox returns the minimum rectangle containing all non-white pixels in the source image.
@@ -149,4 +153,83 @@ func ImageToString(img image.Image) (result string) {
 	}
 
 	return
+}
+
+
+
+func IsYAxisBlank(src image.Image, x int) bool {
+	max := src.Bounds().Max
+	for y := 0; y < max.Y; y++ {
+		c := src.At(x, y)
+		if IsBlackX(c) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func ImageSegmentX(src image.Image, x int) (int,int) {
+	max := src.Bounds().Max
+
+	s := x
+	find := false
+	for ; x < max.X; x++ {
+		if !IsYAxisBlank(src, x) {
+			if !find {
+				s = x
+				find = true
+			}
+		} else {
+			if find {
+				break
+			}
+		}
+	}
+
+	return s, x
+}
+
+// SaveToPNG create a png file with the img
+func SaveToPNG(path string, img image.Image) {
+	f, err := os.Create(path)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer f.Close()
+
+	png.Encode(f, img)
+}
+
+// SaveToPNG create a png file, which name is 'time'
+func SaveToTimePNG(img image.Image) {
+	path := fmt.Sprintf("./res/%s.png", time.Now().Format("20170101-171513"))
+	SaveToPNG(path, img)
+}
+
+// NewSubRGBA create sub image
+func NewSubRGBA(rgba image.Image, b image.Rectangle) *image.RGBA {
+	result := image.NewRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
+	draw.Draw(result, result.Bounds(), rgba, b.Min, draw.Src)
+	return result
+}
+
+func ImageSplit(rgba image.Image) []*image.RGBA {
+	var ret []*image.RGBA
+	start := 0
+	end := 0
+	for {
+		start, end = ImageSegmentX(rgba, start)
+
+		fmt.Println(start, end, rgba.Bounds().Max.X)
+		if end == rgba.Bounds().Max.X {
+			break
+		}
+
+		newRgba := NewSubRGBA(rgba, image.Rect(start, 0, end, rgba.Bounds().Max.Y))
+		start = end
+		ret = append(ret, newRgba)
+	}
+
+	return ret
 }
