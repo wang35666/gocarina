@@ -155,21 +155,22 @@ func ImageToString(img image.Image) (result string) {
 	return
 }
 
-
-
 func IsYAxisBlank(src image.Image, x int) bool {
 	max := src.Bounds().Max
 	for y := 0; y < max.Y; y++ {
 		c := src.At(x, y)
-		if IsBlackX(c) {
+		r, _, _, _ := c.RGBA()
+		if r == 0 {
+			fmt.Println(c, "false")
 			return false
 		}
 	}
 
+	fmt.Println("true")
 	return true
 }
 
-func ImageSegmentX(src image.Image, x int) (int,int) {
+func ImageSegmentV(src image.Image, x int) (int, int) {
 	max := src.Bounds().Max
 
 	s := x
@@ -219,7 +220,7 @@ func ImageSplit(rgba image.Image) []*image.RGBA {
 	start := 0
 	end := 0
 	for {
-		start, end = ImageSegmentX(rgba, start)
+		start, end = ImageSegmentV(rgba, start)
 
 		fmt.Println(start, end, rgba.Bounds().Max.X)
 		if end == rgba.Bounds().Max.X {
@@ -232,4 +233,59 @@ func ImageSplit(rgba image.Image) []*image.RGBA {
 	}
 
 	return ret
+}
+
+// RGBA2GRA rgba image convert to gray image
+func RGBA2Gray(rgba *image.RGBA) *image.Gray {
+	return SubRGBA2Gray(rgba, rgba.Bounds())
+}
+
+// RGBA2GRA sub rgba image convert to gray image
+func SubRGBA2Gray(src *image.RGBA, r image.Rectangle) *image.Gray {
+	dr := r.Intersect(src.Bounds())
+	gray := image.NewGray(image.Rect(0, 0, dr.Dy(), dr.Dy()))
+	min := dr.Min
+	max := dr.Max
+
+	for x := min.X; x <= max.X; x++ {
+		for y := min.Y; y <= max.Y; y++ {
+			gray.Set(x-min.X, y-min.Y, src.At(x, y))
+		}
+	}
+
+	return gray
+}
+
+func Color2Gray8(color color.Color) uint8 {
+	r, g, b, _ := color.RGBA()
+	return uint8(int32(float32(r)*0.3+float32(g)*0.59+float32(b)*0.11) % 0x100)
+}
+
+func IsBlackX(c color.Color) bool {
+	//fmt.Println(Color2Gray8(c))
+	return Color2Gray8(c) < 201
+	//r, g, b, _ := c.RGBA()
+	//return r+g+b < 50000
+}
+
+func ImageThreshold(gray *image.Gray, thresh uint8, ty int) {
+
+	min := gray.Bounds().Min
+	max := gray.Bounds().Max
+
+	for x := min.X; x <= max.X; x++ {
+		for y := min.Y; y <= max.Y; y++ {
+			v := uint8(255)
+			if gray.GrayAt(x, y).Y < thresh {
+				v = 0
+			}
+
+			fmt.Println(v)
+			if ty == 1 {
+				v = 255 - v
+			}
+
+			gray.Set(x, y, color.Gray{v,})
+		}
+	}
 }

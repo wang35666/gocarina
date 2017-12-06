@@ -1,4 +1,3 @@
-
 // Package gocarina uses a neural network to implement a very simple form of OCR (Optical Character Recognition).
 package gocarina
 
@@ -42,13 +41,23 @@ type Network struct {
 	OutputValues  []float64   // after feed-forward, what the output nodes output
 	OutputErrors  []float64   // error from the output nodes
 	HiddenErrors  []float64   // error from the hidden nodes
+
+	tileWidth  int
+	tileHeight int
 }
 
 // NewNetwork returns a new instance of a neural network, with the given number of input nodes.
-func NewNetwork(numInputs int) *Network {
+func NewNetwork(w int, h int) *Network {
+	numInputs := w * h
 	hiddenCount := numInputs + NumOutputs // somewhat arbitrary; you should experiment with this value
 
-	n := &Network{NumInputs: numInputs, HiddenCount: hiddenCount, NumOutputs: NumOutputs}
+	n := &Network{
+		NumInputs:   numInputs,
+		HiddenCount: hiddenCount,
+		NumOutputs:  NumOutputs,
+		tileWidth:   w,
+		tileHeight:  h,
+	}
 
 	n.InputValues = make([]uint8, n.NumInputs)
 	n.OutputValues = make([]float64, n.NumOutputs)
@@ -99,7 +108,7 @@ func (n *Network) Recognize(img image.Image) rune {
 		log.Fatalf("error in ParseInt for %s: ", err)
 	}
 
-	//log.Printf("returning bitstring: %s", bitstring)
+	log.Printf("returning bitstring: %s", bitstring)
 	return rune(asciiCode)
 }
 
@@ -147,15 +156,18 @@ func round(f float64) int {
 
 // feed the image into the network
 func (n *Network) assignInputs(img image.Image) {
-	numPixels := img.Bounds().Dx() * img.Bounds().Dy()
-	if numPixels != n.NumInputs {
-		log.Fatalf("expected %d inputs, got %d", n.NumInputs, numPixels)
+	if img.Bounds().Dx() > n.tileWidth || img.Bounds().Dy() > n.tileHeight {
+		log.Fatalf("expected %d %d inputs, got %d %d",
+			n.tileWidth,
+			n.tileHeight,
+			img.Bounds().Dx(),
+			img.Bounds().Dy())
 	}
 	//log.Printf("numPixels: %d", numPixels)
 
 	i := 0
-	for row := img.Bounds().Min.Y; row < img.Bounds().Max.Y; row++ {
-		for col := img.Bounds().Min.X; col < img.Bounds().Max.X; col++ {
+	for row := img.Bounds().Min.Y; row < img.Bounds().Min.Y + n.tileHeight; row++ {
+		for col := img.Bounds().Min.X; col < img.Bounds().Min.X + n.tileWidth; col++ {
 			pixel := pixelToBit(img.At(col, row))
 			n.InputValues[i] = pixel
 			i++

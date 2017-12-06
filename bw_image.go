@@ -66,8 +66,4 @@ func IsWhite(c color.Color) bool {
 	return r == wr && g == wg && b == wb && a == wa
 }
 
-func IsBlackX(c color.Color) bool {
-	r, g, b, _ := c.RGBA()
 
-	return r+g+b < 50000
-}
